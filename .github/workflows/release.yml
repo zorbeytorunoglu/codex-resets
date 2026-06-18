@@ -89,7 +89,20 @@ jobs:
             echo "$package_name@$version is already published; skipping"
             exit 0
           fi
-          npm publish --access public --provenance
+          if npm publish --access public --provenance; then
+            exit 0
+          fi
+
+          # npm can occasionally publish successfully and still return a
+          # duplicate-version failure before the workflow reaches the GitHub
+          # release step. If the target version is now visible, continue so
+          # reruns can finish release artifact creation.
+          if npm view "$package_name@$version" version >/dev/null 2>&1; then
+            echo "$package_name@$version is published after npm publish returned non-zero; continuing"
+            exit 0
+          fi
+
+          exit 1
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
