@@ -1,30 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import path from "node:path";
 import { loadAuth, parseAuthJson, resolveAuthPath } from "../src/auth.js";
 
 test("resolveAuthPath uses explicit auth path first", () => {
+  const homeDir = path.resolve("home", "zorbey");
   assert.equal(
     resolveAuthPath({
       authPath: "~/custom/auth.json",
       env: { CODEX_HOME: "/ignored" },
-      homeDir: "/home/zorbey",
+      homeDir,
     }),
-    "/home/zorbey/custom/auth.json",
+    path.join(homeDir, "custom", "auth.json"),
   );
 });
 
 test("resolveAuthPath falls back to CODEX_HOME", () => {
+  const homeDir = path.resolve("home", "zorbey");
   assert.equal(
     resolveAuthPath({
       env: { CODEX_HOME: "~/codex-home" },
-      homeDir: "/home/zorbey",
+      homeDir,
     }),
-    "/home/zorbey/codex-home/auth.json",
+    path.join(homeDir, "codex-home", "auth.json"),
   );
 });
 
 test("resolveAuthPath defaults to ~/.codex/auth.json", () => {
-  assert.equal(resolveAuthPath({ env: {}, homeDir: "/home/zorbey" }), "/home/zorbey/.codex/auth.json");
+  const homeDir = path.resolve("home", "zorbey");
+  assert.equal(resolveAuthPath({ env: {}, homeDir }), path.join(homeDir, ".codex", "auth.json"));
 });
 
 test("parseAuthJson extracts token and account ID", () => {
