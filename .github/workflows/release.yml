@@ -1,0 +1,101 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish or recover, for example v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - id: metadata
+        name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="${{ inputs.tag }}"
+          fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)(\.[0-9]+)?)?$ ]]; then
+            echo "Tag '$tag' must match vX.Y.Z or vX.Y.Z-alpha.N"
+            exit 1
+          fi
+          checked_out_tag="$(git describe --tags --exact-match HEAD 2>/dev/null || true)"
+          if [[ "$checked_out_tag" != "$tag" ]]; then
+            echo "Checked out ref does not match tag $tag"
+            exit 1
+          fi
+          version="${tag#v}"
+          package_version="$(node -p "require('./package.json').version")"
+          version_js="$(node -e "import('./src/version.js').then((m) => process.stdout.write(m.VERSION))")"
+          test "$version" = "$package_version"
+          test "$version" = "$version_js"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: npm ci
+      - run: npm run ci
+
+      - name: Build npm tarball and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          npm pack --pack-destination dist
+          if command -v sha256sum >/dev/null 2>&1; then
+            (cd dist && sha256sum *.tgz > SHA256SUMS)
+          else
+            (cd dist && shasum -a 256 *.tgz > SHA256SUMS)
+          fi
+
+      - name: Publish to npm
+        if: ${{ steps.metadata.outputs.prerelease != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_name="$(node -p "require('./package.json').name")"
+          version="${{ steps.metadata.outputs.version }}"
+          if npm view "$package_name@$version" version >/dev/null 2>&1; then
+            echo "$package_name@$version is already published; skipping"
+            exit 0
+          fi
+          npm publish --access public --provenance
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tgz
+            dist/SHA256SUMS
+          generate_release_notes: true
+          prerelease: ${{ steps.metadata.outputs.prerelease == 'true' }}

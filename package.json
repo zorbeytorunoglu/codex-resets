@@ -1,0 +1,44 @@
+{
+  "name": "@zorbeytorunoglu/codex-resets",
+  "version": "0.1.0",
+  "description": "Show Codex reset-credit grant and expiry dates from your local Codex auth",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "codex-resets": "bin/codex-resets.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test",
+    "pack:dry-run": "npm pack --dry-run",
+    "ci": "npm run check && npm test && npm run pack:dry-run"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "codex",
+    "openai",
+    "chatgpt",
+    "cli",
+    "reset",
+    "usage"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zorbeytorunoglu/codex-resets.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zorbeytorunoglu/codex-resets/issues"
+  },
+  "homepage": "https://github.com/zorbeytorunoglu/codex-resets#readme"
+}
