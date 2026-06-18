@@ -77,11 +77,18 @@ npm run ci
 
 ## Release
 
-Releases are tag-driven:
+Releases are automated from a clean, synced <code>main</code> branch:
 
-~~~bash
-git tag v0.1.0
-git push origin v0.1.0
-~~~
+1. Preview the release:
 
-GitHub Actions runs tests, builds an npm tarball, publishes to npm with provenance through trusted publishing, and creates a GitHub Release.
+   ~~~bash
+   npm run release -- patch --notes "Describe the user-visible change"
+   ~~~
+
+2. Publish it:
+
+   ~~~bash
+   npm run release -- patch --notes "Describe the user-visible change" --yes
+   ~~~
+
+The script updates version files and the changelog, runs checks, commits, tags, and pushes. GitHub Actions then builds the npm tarball, publishes to npm with provenance through trusted publishing, and creates a GitHub Release.

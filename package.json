@@ -14,7 +14,8 @@
     "check": "node scripts/check.mjs",
     "test": "node --test",
     "pack:dry-run": "npm pack --dry-run",
-    "ci": "npm run check && npm test && npm run pack:dry-run"
+    "ci": "npm run check && npm test && npm run pack:dry-run",
+    "release": "node scripts/release.mjs"
   },
   "files": [
     "bin",
